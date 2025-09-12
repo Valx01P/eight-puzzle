@@ -1,6 +1,6 @@
 // @ts-nocheck
 'use client'
-import {useRef, useEffect, useState, use} from 'react'
+import {useRef, useEffect, useState} from 'react'
 import NextImage from 'next/image'
 
 // constants
@@ -41,6 +41,38 @@ const Game = () => {
   const [puzzleStarted, setPuzzleStarted] = useState(false)
   const [matrix, setMatrix] = useState([]) // puzzle state matrix
   const [canvasBgColor, setCanvasBgColor] = useState('white') // canvas background color
+
+  // keep matrix ref in sync so event listeners always see the latest value
+  const matrixRef = useRef(matrix)
+  useEffect(() => {
+    matrixRef.current = matrix
+  }, [matrix])
+
+  const findBlankPosition = (mat) => {
+    for (let r = 0; r < GRID_SIZE; r++) {
+      for (let c = 0; c < GRID_SIZE; c++) {
+        if (mat[r][c] === 0) return { r, c }
+      }
+    }
+  }
+
+  const isAdjacentToBlank = (r, c, mat) => {
+    const { r: br, c: bc } = findBlankPosition(mat)
+    return Math.abs(r - br) + Math.abs(c - bc) === 1
+  }
+
+  const swapWithBlank = (r, c, mat) => {
+    const { r: br, c: bc } = findBlankPosition(mat)
+    const newMat = mat.map((row) => [...row]) // clone matrix
+    ;[newMat[r][c], newMat[br][bc]] = [newMat[br][bc], newMat[r][c]]
+    return newMat
+  }
+
+  const redrawPuzzle = (ctx, img, mat, bg) => {
+    ctx.fillStyle = bg
+    ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
+    drawPuzzle(ctx, img, mat)
+  }
 
   const createInitialMatrix = () => {
     const arr = []
@@ -207,6 +239,7 @@ const Game = () => {
       // draw puzzle
       const initialMatrix = shuffleMatrix(createInitialMatrix())
       setMatrix(initialMatrix)
+      matrixRef.current = initialMatrix
 
       ctx.fillStyle = newBg
       ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
@@ -214,8 +247,46 @@ const Game = () => {
     }
 
     img.src = imageFileURL
-  }, [puzzleStarted, imageFileURL])
 
+    const handleMouseMove = (e) => {
+      const rect = canvas.getBoundingClientRect()
+      const mouseX = e.clientX - rect.left
+      const mouseY = e.clientY - rect.top
+
+      const row = Math.floor(mouseY / TILE_SIZE)
+      const col = Math.floor(mouseX / TILE_SIZE)
+
+      if (isAdjacentToBlank(row, col, matrixRef.current)) {
+        canvas.style.cursor = 'pointer'
+      } else {
+        canvas.style.cursor = 'default'
+      }
+    }
+
+    const handleClick = (e) => {
+      const rect = canvas.getBoundingClientRect()
+      const mouseX = e.clientX - rect.left
+      const mouseY = e.clientY - rect.top
+
+      const row = Math.floor(mouseY / TILE_SIZE)
+      const col = Math.floor(mouseX / TILE_SIZE)
+
+      if (isAdjacentToBlank(row, col, matrixRef.current)) {
+        const newMatrix = swapWithBlank(row, col, matrixRef.current)
+        setMatrix(newMatrix)
+        matrixRef.current = newMatrix
+        redrawPuzzle(ctx, img, newMatrix, canvasBgColor)
+      }
+    }
+
+    canvas.addEventListener('mousemove', handleMouseMove)
+    canvas.addEventListener('click', handleClick)
+
+    return () => {
+      canvas.removeEventListener('mousemove', handleMouseMove)
+      canvas.removeEventListener('click', handleClick)
+    }
+  }, [puzzleStarted, imageFileURL])
 
   return (
     <section className='bg-gray-950 flex justify-base items-center flex-col min-h-dvh py-32'>
@@ -255,7 +326,7 @@ const Game = () => {
                   className='border border-gray-900 bg-white'
                 />
                 <button
-                  className='bg-gray-200 hover:bg-gray-300 text-black p-2 hover:cursor-pointer'
+                  className='bg-gray-200 w-fit hover:bg-gray-300 text-black p-2 hover:cursor-pointer'
                   onClick={() => setPuzzleStarted(true)}
                 >
                   Create 8-Puzzle
@@ -268,7 +339,6 @@ const Game = () => {
           <h1>Puzzle started</h1>
         </>
       }
- 
       </div>
     </section>
   )
