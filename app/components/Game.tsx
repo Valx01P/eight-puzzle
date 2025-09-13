@@ -5,7 +5,6 @@ import NextImage from 'next/image'
 
 // constants
 const GRID_SIZE = 3
-const TILE_SIZE = 140 // size of each tile in pixels
 
 const Game = () => {
   const inputRef = useRef(null)
@@ -31,6 +30,48 @@ const Game = () => {
   const [savedHistoryBeforeSolver, setSavedHistoryBeforeSolver] = useState([])
   const [solverTime, setSolverTime] = useState(null) // to store the algorithm's execution time
   const [solverMessage, setSolverMessage] = useState(null) // to show messages like DFS failure
+
+  // responsive states
+  const [tileSize, setTileSize] = useState(140)
+  const [gridContainerSize, setGridContainerSize] = useState(426)
+  const [contentWidth, setContentWidth] = useState(420)
+
+  useEffect(() => {
+    const calculateSize = () => {
+      // the maximum width for the puzzle's image content area
+      const maxWidth = 420
+      
+      // padding from the screen edges to prevent touching the sides
+      const screenPadding = 30
+      
+      // calculate the available width in the viewport
+      const availableWidth = window.innerWidth - screenPadding
+      
+      // determine the base width for the tiles grid (cannot exceed maxwidth)
+      const gridContentWidth = Math.min(maxWidth, availableWidth)
+      
+      // calculate the size of a single tile, ensuring it's an integer
+      const newTileSize = Math.floor(gridContentWidth / GRID_SIZE)
+      
+      // calculate the full container size, adding 6px for borders/gaps
+      // this is based on the original code's 426px container for 420px (3*140) of tiles
+      const newContainerSize = (newTileSize * GRID_SIZE) + 6
+      const newContentWidth = newTileSize * GRID_SIZE
+      
+      setTileSize(newTileSize)
+      setGridContainerSize(newContainerSize)
+      setContentWidth(newContentWidth)
+    };
+    
+    // calculate size on initial render
+    calculateSize()
+    
+    // add event listener for window resize
+    window.addEventListener('resize', calculateSize)
+    
+    // cleanup function to remove the event listener
+    return () => window.removeEventListener('resize', calculateSize)
+  }, [])
 
   const createInitialTiles = () => {
     // array from 0 to 8, where 8 is the blank tile
@@ -442,21 +483,31 @@ const Game = () => {
     // re-run the solver with the new algorithm
     runSolver(newAlgorithm, savedStateBeforeSolver)
   }
+  
+  const dynamicButtonText = "whitespace-nowrap text-[clamp(0.7rem,2.5vw,0.9rem)]";
+  const dynamicHeaderText = "text-[clamp(1rem,4vw,1.25rem)]";
+  const dynamicUIText = "text-[clamp(0.8rem,2.5vw,1rem)]";
 
   return (
-    <section className='bg-gray-950 flex justify-center items-center flex-col min-h-dvh py-32'>
+    <section className='bg-gray-950 flex justify-center items-center flex-col min-h-dvh py-8 sm:py-16 md:py-32 px-4'>
       {/* BEFORE PUZZLE HAS STARTED */}
       {!puzzleStarted ? (
-        <div className='flex flex-col items-center'>
+        <div className='flex flex-col items-center w-full'>
           {/* FUN WAITING SCREEN */}
-          <div className='w-[420px] h-[420px] bg-gray-900 border border-gray-800 flex items-center justify-center mb-8'>
+          <div 
+            className='bg-gray-900 border border-gray-800 flex items-center justify-center mb-8'
+            style={{ width: `${contentWidth}px`, height: `${contentWidth}px` }}
+          >
             <div
-              className='w-12 h-12 animate-bounce' 
-              style={{ backgroundColor: 'tomato' }}
+              className='animate-bounce' 
+              style={{ backgroundColor: 'tomato', width: `${contentWidth / 8}px`, height: `${contentWidth / 8}px` }}
             />
           </div>
           {/* IMAGE UPLOAD AND PREVIEW */}
-          <div className='flex items-start justify-baseline flex-col min-w-[420px]'>
+          <div 
+            className='flex items-start justify-baseline flex-col'
+            style={{ width: `${contentWidth}px` }}
+          >
             {/* HIDDEN INPUT, WITH BUTTON TARGETING IT, BECAUSE IT LOOKS BETTER */}
             <input
               type="file"
@@ -468,23 +519,24 @@ const Game = () => {
             <button
               type='button'
               onClick={handleFileInputClick}
-              className="bg-gray-200 hover:bg-gray-300 text-black p-2"
+              className={`bg-gray-200 hover:bg-gray-300 text-black p-2 rounded ${dynamicButtonText}`}
             >
               {!imageFile ? 'Upload Image' : 'Change Image'}
             </button>
             {/* IMAGE PREVIEW AND CONFIRMATION */}
             {imageFile && (
               <div className='mt-4 mb-2 flex flex-col'>
-                <p className='text-white'>Selected: {imageFile.name}</p>
+                <p className='text-white truncate'>Selected: {imageFile.name}</p>
                 <NextImage 
                   src={imageFileURL}
-                  width={260}
-                  height={260}
+                  width={0}
+                  height={0}
+                  sizes="100vw"
                   alt='image_preview'
-                  className='border border-gray-900 bg-white mb-4'
+                  className='border border-gray-900 bg-white mb-4 mt-2 w-full h-auto max-w-[260px]'
                 />
                 <button
-                  className='bg-gray-200 w-fit hover:bg-gray-300 text-black p-2'
+                  className={`bg-gray-200 w-fit hover:bg-gray-300 text-black p-2 rounded ${dynamicButtonText}`}
                   onClick={startPuzzle}
                 >
                   Create 8-Puzzle
@@ -499,7 +551,7 @@ const Game = () => {
           {/* PUZZLE DISPLAY */}
           <div 
             className='grid grid-cols-3 gap-1 bg-gray-800 p-1'
-            style={{ width: '426px', height: '426px' }}
+            style={{ width: `${gridContainerSize}px`, height: `${gridContainerSize}px` }}
           > 
             {/* CREATE AND DISPLAY ALL THE TILES IN OUR PUZZLE GRID */}
             {tiles.map((tile, index) => {
@@ -510,7 +562,7 @@ const Game = () => {
                 <div
                   key={index}
                   onClick={() => handleTileClick(index)}
-                  className={`relative overflow-hidden bg-gray-900 ${
+                  className={`relative overflow-hidden bg-gray-900 transition-opacity duration-150 ${
                     !puzzleSolved && !solverOpen && isMovable
                       ? 'cursor-pointer hover:opacity-90 ring-2 ring-blue-500 ring-opacity-50'
                       : (puzzleSolved || solverOpen)
@@ -518,8 +570,8 @@ const Game = () => {
                         : 'cursor-pointer hover:opacity-90'
                   }`}
                   style={{
-                    width: TILE_SIZE + 'px',
-                    height: TILE_SIZE + 'px',
+                    width: tileSize + 'px',
+                    height: tileSize + 'px',
                   }}
                 >
                   {/* TILE CONTENT, THE IMAGE PIECE SHOWN, CALCULATED FROM INDEX */}
@@ -528,13 +580,13 @@ const Game = () => {
                       className={`w-full h-full ${isBlank ? 'opacity-20' : ''}`}
                       style={{
                         backgroundImage: `url(${imageFileURL})`,
-                        backgroundSize: '420px 420px',
-                        backgroundPosition: `-${(tile % GRID_SIZE) * TILE_SIZE}px -${Math.floor(tile / GRID_SIZE) * TILE_SIZE}px`,
+                        backgroundSize: `${contentWidth}px ${contentWidth}px`,
+                        backgroundPosition: `-${(tile % GRID_SIZE) * tileSize}px -${Math.floor(tile / GRID_SIZE) * tileSize}px`,
                       }}
                     />
                   )}
                   {!isBlank && showNumbers && (
-                    <div className='absolute top-1 left-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded'>
+                    <div className='absolute top-1 left-1 bg-black bg-opacity-50 text-white text-xs px-1 py-0.5 rounded-sm'>
                       {tile + 1}
                     </div>
                   )}
@@ -544,20 +596,23 @@ const Game = () => {
           </div>
           
           {/* WHEN PUZZLE SOLVED BY PLAYER */}
-          {puzzleSolved && !solverOpen && <p className='text-green-400 mt-4 mb-2'>Puzzle solved!</p>}
+          {puzzleSolved && !solverOpen && <p className={`text-green-400 mt-4 mb-2 ${dynamicHeaderText}`}>Puzzle solved!</p>}
           {/* WHEN PUZZLE SOLVED BY SOLVER (ALGORITHMS) */}
-          {puzzleSolved && solverOpen && <p className='text-green-400 mt-4 mb-2'>Solver completed!</p>}
+          {puzzleSolved && solverOpen && <p className={`text-green-400 mt-4 mb-2 ${dynamicHeaderText}`}>Solver completed!</p>}
           
           {/* WHEN SOLVER IS SELECTED, SHOW SOLVER CONTROL MENU */}
           {solverOpen && (
-            <div className='flex flex-col items-center min-w-[420px] mt-4 p-4 bg-gray-800 rounded'>
+            <div 
+              className='flex flex-col items-center mt-4 p-4 bg-gray-800 rounded'
+              style={{ width: `${contentWidth}px` }}
+            >
               <div className='flex flex-row items-center gap-4 mb-4'>
-                <label className='text-white'>Algorithm:</label>
+                <label className={`text-white ${dynamicUIText}`}>Algorithm:</label>
                 {/* SELECT ALGORITHM TO SOLVE WITH */}
                 <select 
                   value={solverAlgorithm} 
                   onChange={handleAlgorithmChange}
-                  className='bg-gray-700 text-white p-1 rounded'
+                  className={`bg-gray-700 text-white p-1 rounded ${dynamicUIText}`}
                 >
                   <option value='*astar'>*A* Search</option>
                   <option value='bfs'>BFS</option>
@@ -570,27 +625,27 @@ const Game = () => {
                 <button
                   onClick={handlePrevStep}
                   disabled={currentSolverStep === 0}
-                  className='bg-gray-600 hover:bg-gray-500 disabled:bg-gray-700 disabled:opacity-50 text-white p-2 rounded'
+                  className={`bg-gray-600 hover:bg-gray-500 disabled:bg-gray-700 disabled:opacity-50 text-white p-2 rounded ${dynamicButtonText}`}
                 >
                   ← Prev
                 </button>
                 <button
                   onClick={handleNextStep}
                   disabled={currentSolverStep >= solverSteps.length}
-                  className='bg-gray-600 hover:bg-gray-500 disabled:bg-gray-700 disabled:opacity-50 text-white p-2 rounded'
+                  className={`bg-gray-600 hover:bg-gray-500 disabled:bg-gray-700 disabled:opacity-50 text-white p-2 rounded ${dynamicButtonText}`}
                 >
                   Next →
                 </button>
               </div>
               {/* CALCULATION TIME FOR SOLVER ALGORITHM */}
               {solverTime !== null && (
-                <div className='text-white mb-2 text-sm'>
+                <div className={`text-white mb-2 ${dynamicUIText}`}>
                   Calculation Time: {solverTime.toFixed(2)} ms
                 </div>
               )}
 
               {/* ALGORITHM STEPS, OR MESSAGE FOR DFS CALL STACK EXCEEDED */}
-              <div className='text-white mb-2'>
+              <div className={`text-white mb-2 text-center ${dynamicUIText}`}>
                 {solverMessage ? (
                   <span className='text-yellow-400'>{solverMessage}</span>
                 ) : (
@@ -601,15 +656,18 @@ const Game = () => {
           )}
           
           {/* DEFAULT PUZZLE MENU FOR PLAYER */}
-          {/* FIRST ROW */}
-          <div className='flex flex-col items-center min-w-[420px] mt-8'>
-            <div className='flex flex-row items-center justify-between gap-4 mb-2 w-full'>
-              <p className='text-white'>Turns: {solverOpen ? solverTurns : turns}</p>
+          <div 
+            className='flex flex-col items-center mt-8'
+            style={{ width: `${contentWidth}px` }}
+          >
+            {/* FIRST ROW */}
+            <div className='flex flex-row items-center justify-center gap-4 mb-2 w-full'>
+              <p className={`text-white ${dynamicButtonText}`}>Turns: {solverOpen ? solverTurns : turns}</p>
               {/* GO BACK ONE STEP BUTTON */}
               <button 
                 onClick={handleUndo}
                 disabled={solverOpen}
-                className='bg-gray-200 hover:bg-gray-300 disabled:bg-gray-400 disabled:opacity-50 text-black p-2'
+                className={`bg-gray-200 hover:bg-gray-300 disabled:bg-gray-400 disabled:opacity-50 text-black p-2 rounded ${dynamicButtonText}`}
               >
                 {history.length === 0 ? 'Exit Puzzle' : 'Undo Move'}
               </button>
@@ -617,14 +675,14 @@ const Game = () => {
               <button 
                 onClick={handleShuffle}
                 disabled={solverOpen}
-                className='bg-gray-200 hover:bg-gray-300 disabled:bg-gray-400 disabled:opacity-50 text-black p-2'
+                className={`bg-gray-200 hover:bg-gray-300 disabled:bg-gray-400 disabled:opacity-50 text-black p-2 rounded ${dynamicButtonText}`}
               >
                 Shuffle
               </button>
               {/* BUTTON TO OPTIONALLY SHOW THE TILE INDEXES TO PLAYER */}
               <button 
                 onClick={() => setShowNumbers(!showNumbers)} 
-                className='bg-gray-200 hover:bg-gray-300 text-black p-2'
+                className={`bg-gray-200 hover:bg-gray-300 disabled:bg-gray-400 disabled:opacity-50 text-black p-2 rounded ${dynamicButtonText}`}
               >
                 {showNumbers ? 'Hide' : 'Show'} Numbers
               </button>
@@ -636,14 +694,14 @@ const Game = () => {
               <button 
                 onClick={handleReset}
                 disabled={solverOpen}
-                className='bg-gray-200 hover:bg-gray-300 disabled:bg-gray-400 disabled:opacity-50 text-black p-2'
+                className={`bg-gray-200 hover:bg-gray-300 disabled:bg-gray-400 disabled:opacity-50 text-black p-2 rounded ${dynamicButtonText}`}
               >
                 Reset to Start
               </button>
               {/* OPEN SOLVER MENU, SHOWS STEP BY STEP SOLUTION WITH DIFFERENT ALGORITHMS */}
               <button 
                 onClick={handleSolve}
-                className='bg-blue-500 hover:bg-blue-400 text-white p-2'
+                className={`bg-blue-500 hover:bg-blue-400 text-white p-2 rounded ${dynamicButtonText}`}
               >
                 {solverOpen ? 'Close Solver' : 'Solve'}
               </button>
