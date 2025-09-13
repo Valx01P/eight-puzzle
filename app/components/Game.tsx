@@ -73,11 +73,6 @@ const Game = () => {
     return () => window.removeEventListener('resize', calculateSize)
   }, [])
 
-  const createInitialTiles = () => {
-    // array from 0 to 8, where 8 is the blank tile
-    return [0, 1, 2, 3, 4, 5, 6, 7, 8]
-  }
-
   const isSolvable = (arr) => {
     // count inversions (excluding the blank tile)
     const filtered = arr.filter(n => n !== 8)
@@ -372,17 +367,6 @@ const Game = () => {
       setSolverTurns(prevStep)
       setPuzzleSolved(false)
     }
-  }
-
-  const formatMatrix = (state) => {
-    let result = '['
-    for (let i = 0; i < 9; i += 3) {
-      if (i > 0) result += ' '
-      result += `[${state[i]}, ${state[i+1]}, ${state[i+2]}]`
-      if (i < 6) result += ',\n'
-    }
-    result += ']'
-    return result
   }
 
   const handleTileClick = (index) => {
