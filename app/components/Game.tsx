@@ -1,6 +1,6 @@
 // @ts-nocheck
 'use client'
-import {useRef, useState} from 'react'
+import {useRef, useState, useEffect} from 'react'
 import NextImage from 'next/image'
 
 // constants
@@ -19,9 +19,21 @@ const Game = () => {
   const [puzzleSolved, setPuzzleSolved] = useState(false)
   const [showNumbers, setShowNumbers] = useState(false) // toggle tile numbers
   const [initialState, setInitialState] = useState([]) // store the initial shuffled state
+  
+  // solver states
+  const [solverOpen, setSolverOpen] = useState(false)
+  const [solverAlgorithm, setSolverAlgorithm] = useState('*astar') // '*astar', 'bfs', 'dfs'
+  const [solverSteps, setSolverSteps] = useState([])
+  const [currentSolverStep, setCurrentSolverStep] = useState(0)
+  const [solverTurns, setSolverTurns] = useState(0)
+  const [savedStateBeforeSolver, setSavedStateBeforeSolver] = useState(null)
+  const [savedTurnsBeforeSolver, setSavedTurnsBeforeSolver] = useState(0)
+  const [savedHistoryBeforeSolver, setSavedHistoryBeforeSolver] = useState([])
+  const [solverTime, setSolverTime] = useState(null) // to store the algorithm's execution time
+  const [solverMessage, setSolverMessage] = useState(null) // to show messages like DFS failure
 
   const createInitialTiles = () => {
-    // puzzle array, 8 is the blank tile
+    // array from 0 to 8, where 8 is the blank tile
     return [0, 1, 2, 3, 4, 5, 6, 7, 8]
   }
 
@@ -40,7 +52,7 @@ const Game = () => {
   const shuffleTiles = () => {
     let shuffled
     do {
-      // ctart with solved state
+      // start with solved state
       shuffled = [0, 1, 2, 3, 4, 5, 6, 7, 8]
       
       // Fisher-Yates shuffle
@@ -92,12 +104,252 @@ const Game = () => {
     return newTiles
   }
 
+  // get all possible moves from a state
+  const getPossibleMoves = (state) => {
+    const blankIndex = getBlankIndex(state)
+    const moves = []
+    
+    for (let i = 0; i < 9; i++) {
+      if (canSwap(i, state)) {
+        moves.push({
+          index: i,
+          resultState: swapTiles(i, state)
+        })
+      }
+    }
+    
+    return moves
+  }
+
+  // manhattan distance heuristic for A*
+  const getManhattanDistance = (state) => {
+    let distance = 0
+    for (let i = 0; i < 9; i++) {
+      if (state[i] !== 8) { // skip blank tile
+        const currentRow = Math.floor(i / GRID_SIZE)
+        const currentCol = i % GRID_SIZE
+        const targetRow = Math.floor(state[i] / GRID_SIZE)
+        const targetCol = state[i] % GRID_SIZE
+        distance += Math.abs(currentRow - targetRow) + Math.abs(currentCol - targetCol)
+      }
+    }
+    return distance
+  }
+
+  // A* solver
+  const solveAStar = (startState) => {
+    const visited = new Set()
+    const queue = [{
+      state: startState,
+      path: [],
+      cost: 0,
+      heuristic: getManhattanDistance(startState)
+    }]
+    
+    while (queue.length > 0) {
+      // sort by f(n) = g(n) + h(n)
+      queue.sort((a, b) => (a.cost + a.heuristic) - (b.cost + b.heuristic))
+      const current = queue.shift()
+      
+      if (checkWin(current.state)) {
+        return current.path
+      }
+      
+      const stateKey = current.state.join(',')
+      if (visited.has(stateKey)) continue
+      visited.add(stateKey)
+      
+      const moves = getPossibleMoves(current.state)
+      for (const move of moves) {
+        const newStateKey = move.resultState.join(',')
+        if (!visited.has(newStateKey)) {
+          queue.push({
+            state: move.resultState,
+            path: [...current.path, move.resultState],
+            cost: current.cost + 1,
+            heuristic: getManhattanDistance(move.resultState)
+          })
+        }
+      }
+    }
+    
+    return [] // no solution found
+  }
+
+  // BFS solver
+  const solveBFS = (startState) => {
+    const visited = new Set()
+    const queue = [{
+      state: startState,
+      path: []
+    }]
+    
+    visited.add(startState.join(','))
+    
+    while (queue.length > 0) {
+      const current = queue.shift()
+      
+      if (checkWin(current.state)) {
+        return current.path
+      }
+      
+      const moves = getPossibleMoves(current.state)
+      for (const move of moves) {
+        const stateKey = move.resultState.join(',')
+        if (!visited.has(stateKey)) {
+          visited.add(stateKey)
+          queue.push({
+            state: move.resultState,
+            path: [...current.path, move.resultState]
+          })
+        }
+      }
+    }
+    
+    return [] // no solution found
+  }
+
+  // DFS solver (with depth limit to prevent infinite loops)
+  const solveDFS = (startState, maxDepth = 50) => {
+    const visited = new Set()
+    const stack = [{
+      state: startState,
+      path: [],
+      depth: 0
+    }]
+    
+    while (stack.length > 0) {
+      const current = stack.pop()
+      
+      if (checkWin(current.state)) {
+        return current.path // return solution path on success
+      }
+      
+      if (current.depth >= maxDepth) continue
+      
+      const stateKey = current.state.join(',')
+      if (visited.has(stateKey)) continue
+      visited.add(stateKey)
+      
+      const moves = getPossibleMoves(current.state)
+      for (const move of moves) {
+        const newStateKey = move.resultState.join(',')
+        if (!visited.has(newStateKey)) {
+          stack.push({
+            state: move.resultState,
+            path: [...current.path, move.resultState],
+            depth: current.depth + 1
+          })
+        }
+      }
+    }
+    
+    return null // return null if no solution is found within the depth limit
+  }
+
+  const runSolver = (algorithm, state) => {
+    // this is a helper to run the selected algorithm and handle timing and DFS failure
+    setSolverTime(null)
+    setSolverMessage(null)
+    
+    const startTime = performance.now()
+    
+    let solution
+    const algorithmToRun = algorithm.startsWith('*') ? algorithm.substring(1) : algorithm
+    
+    switch (algorithmToRun) {
+      case 'astar':
+        solution = solveAStar(state)
+        break
+      case 'bfs':
+        solution = solveBFS(state)
+        break
+      case 'dfs':
+        solution = solveDFS(state)
+        break
+      default:
+        solution = []
+    }
+
+    const endTime = performance.now()
+    setSolverTime(endTime - startTime)
+
+    if (algorithmToRun === 'dfs' && solution === null) {
+      setSolverMessage('DFS failed: Max depth reached or no solution found.')
+      setSolverSteps([])
+    } else {
+      setSolverSteps(solution || [])
+    }
+  }
+
+  const handleSolve = () => {
+    if (solverOpen) {
+      // close solver
+      setSolverOpen(false)
+      setSolverTime(null)
+      setSolverMessage(null)
+
+      // restore previous state
+      if (savedStateBeforeSolver) {
+        setTiles(savedStateBeforeSolver)
+        setTurns(savedTurnsBeforeSolver)
+        setHistory(savedHistoryBeforeSolver)
+        setPuzzleSolved(checkWin(savedStateBeforeSolver))
+      }
+    } else {
+      // open solver
+      setSolverOpen(true)
+      setSavedStateBeforeSolver(tiles)
+      setSavedTurnsBeforeSolver(turns)
+      setSavedHistoryBeforeSolver(history)
+      
+      setCurrentSolverStep(0)
+      setSolverTurns(0)
+      setPuzzleSolved(false)
+
+      runSolver(solverAlgorithm, tiles)
+    }
+  }
+
+  const handleNextStep = () => {
+    if (currentSolverStep < solverSteps.length) {
+      setTiles(solverSteps[currentSolverStep])
+      setCurrentSolverStep(currentSolverStep + 1)
+      setSolverTurns(currentSolverStep + 1)
+      if (checkWin(solverSteps[currentSolverStep])) {
+        setPuzzleSolved(true)
+      }
+    }
+  }
+
+  const handlePrevStep = () => {
+    if (currentSolverStep > 0) {
+      const prevStep = currentSolverStep - 1
+      const prevState = prevStep === 0 ? savedStateBeforeSolver : solverSteps[prevStep - 1]
+      setTiles(prevState)
+      setCurrentSolverStep(prevStep)
+      setSolverTurns(prevStep)
+      setPuzzleSolved(false)
+    }
+  }
+
+  const formatMatrix = (state) => {
+    let result = '['
+    for (let i = 0; i < 9; i += 3) {
+      if (i > 0) result += ' '
+      result += `[${state[i]}, ${state[i+1]}, ${state[i+2]}]`
+      if (i < 6) result += ',\n'
+    }
+    result += ']'
+    return result
+  }
+
   const handleTileClick = (index) => {
-    // don't allow moves if puzzle is solved
-    if (puzzleSolved) return
+    // don't allow moves if puzzle is solved or solver is open
+    if (puzzleSolved || solverOpen) return
     if (!canSwap(index, tiles)) return
     
-    // ave current state to history
+    // save current state to history
     setHistory(prev => [...prev, tiles])
     
     // swap tiles
@@ -112,6 +364,8 @@ const Game = () => {
   }
 
   const handleUndo = () => {
+    if (solverOpen) return // aon't allow undo when solver is open
+    
     if (history.length === 0) {
       setPuzzleStarted(false)
       return
@@ -129,6 +383,8 @@ const Game = () => {
   }
 
   const handleShuffle = () => {
+    if (solverOpen) return // don't allow shuffle when solver is open
+    
     const newTiles = shuffleTiles()
     setTiles(newTiles)
     setInitialState(newTiles) // update initial state for reset
@@ -138,6 +394,8 @@ const Game = () => {
   }
 
   const handleReset = () => {
+    if (solverOpen) return // don't allow reset when solver is open
+    
     // reset to the initial shuffled state when puzzle started
     setTiles(initialState)
     setTurns(0)
@@ -171,17 +429,35 @@ const Game = () => {
     setPuzzleStarted(true)
   }
 
+  const handleAlgorithmChange = (e) => {
+    const newAlgorithm = e.target.value
+    setSolverAlgorithm(newAlgorithm)
+    
+    // reset steps and restore the initial board state for the new calculation
+    setCurrentSolverStep(0)
+    setSolverTurns(0)
+    setTiles(savedStateBeforeSolver)
+    setPuzzleSolved(false)
+
+    // re-run the solver with the new algorithm
+    runSolver(newAlgorithm, savedStateBeforeSolver)
+  }
+
   return (
     <section className='bg-gray-950 flex justify-center items-center flex-col min-h-dvh py-32'>
+      {/* BEFORE PUZZLE HAS STARTED */}
       {!puzzleStarted ? (
         <div className='flex flex-col items-center'>
+          {/* FUN WAITING SCREEN */}
           <div className='w-[420px] h-[420px] bg-gray-900 border border-gray-800 flex items-center justify-center mb-8'>
-            <div 
+            <div
               className='w-12 h-12 animate-bounce' 
               style={{ backgroundColor: 'tomato' }}
             />
           </div>
+          {/* IMAGE UPLOAD AND PREVIEW */}
           <div className='flex items-start justify-baseline flex-col min-w-[420px]'>
+            {/* HIDDEN INPUT, WITH BUTTON TARGETING IT, BECAUSE IT LOOKS BETTER */}
             <input
               type="file"
               accept="image/*"
@@ -196,6 +472,7 @@ const Game = () => {
             >
               {!imageFile ? 'Upload Image' : 'Change Image'}
             </button>
+            {/* IMAGE PREVIEW AND CONFIRMATION */}
             {imageFile && (
               <div className='mt-4 mb-2 flex flex-col'>
                 <p className='text-white'>Selected: {imageFile.name}</p>
@@ -218,10 +495,13 @@ const Game = () => {
         </div>
       ) : (
         <>
+          {/* PUZZLE STARTED */}
+          {/* PUZZLE DISPLAY */}
           <div 
             className='grid grid-cols-3 gap-1 bg-gray-800 p-1'
             style={{ width: '426px', height: '426px' }}
-          >
+          > 
+            {/* CREATE AND DISPLAY ALL THE TILES IN OUR PUZZLE GRID */}
             {tiles.map((tile, index) => {
               const isBlank = tile === 8
               const isMovable = canSwap(index, tiles)
@@ -231,9 +511,9 @@ const Game = () => {
                   key={index}
                   onClick={() => handleTileClick(index)}
                   className={`relative overflow-hidden bg-gray-900 ${
-                    !puzzleSolved && isMovable
+                    !puzzleSolved && !solverOpen && isMovable
                       ? 'cursor-pointer hover:opacity-90 ring-2 ring-blue-500 ring-opacity-50'
-                      : puzzleSolved 
+                      : (puzzleSolved || solverOpen)
                         ? '' 
                         : 'cursor-pointer hover:opacity-90'
                   }`}
@@ -242,6 +522,7 @@ const Game = () => {
                     height: TILE_SIZE + 'px',
                   }}
                 >
+                  {/* TILE CONTENT, THE IMAGE PIECE SHOWN, CALCULATED FROM INDEX */}
                   {imageFileURL && (
                     <div
                       className={`w-full h-full ${isBlank ? 'opacity-20' : ''}`}
@@ -261,22 +542,86 @@ const Game = () => {
               )
             })}
           </div>
+          
+          {/* WHEN PUZZLE SOLVED BY PLAYER */}
+          {puzzleSolved && !solverOpen && <p className='text-green-400 mt-4 mb-2'>Puzzle solved!</p>}
+          {/* WHEN PUZZLE SOLVED BY SOLVER (ALGORITHMS) */}
+          {puzzleSolved && solverOpen && <p className='text-green-400 mt-4 mb-2'>Solver completed!</p>}
+          
+          {/* WHEN SOLVER IS SELECTED, SHOW SOLVER CONTROL MENU */}
+          {solverOpen && (
+            <div className='flex flex-col items-center min-w-[420px] mt-4 p-4 bg-gray-800 rounded'>
+              <div className='flex flex-row items-center gap-4 mb-4'>
+                <label className='text-white'>Algorithm:</label>
+                {/* SELECT ALGORITHM TO SOLVE WITH */}
+                <select 
+                  value={solverAlgorithm} 
+                  onChange={handleAlgorithmChange}
+                  className='bg-gray-700 text-white p-1 rounded'
+                >
+                  <option value='*astar'>*A* Search</option>
+                  <option value='bfs'>BFS</option>
+                  <option value='dfs'>DFS</option>
+                </select>
+              </div>
+              
+              {/* BACK AND FORWARD STEP BUTTONS FOR SOLVER */}
+              <div className='flex flex-row items-center gap-2 mb-4'>
+                <button
+                  onClick={handlePrevStep}
+                  disabled={currentSolverStep === 0}
+                  className='bg-gray-600 hover:bg-gray-500 disabled:bg-gray-700 disabled:opacity-50 text-white p-2 rounded'
+                >
+                  ← Prev
+                </button>
+                <button
+                  onClick={handleNextStep}
+                  disabled={currentSolverStep >= solverSteps.length}
+                  className='bg-gray-600 hover:bg-gray-500 disabled:bg-gray-700 disabled:opacity-50 text-white p-2 rounded'
+                >
+                  Next →
+                </button>
+              </div>
+              {/* CALCULATION TIME FOR SOLVER ALGORITHM */}
+              {solverTime !== null && (
+                <div className='text-white mb-2 text-sm'>
+                  Calculation Time: {solverTime.toFixed(2)} ms
+                </div>
+              )}
+
+              {/* ALGORITHM STEPS, OR MESSAGE FOR DFS CALL STACK EXCEEDED */}
+              <div className='text-white mb-2'>
+                {solverMessage ? (
+                  <span className='text-yellow-400'>{solverMessage}</span>
+                ) : (
+                  <span>Total Steps: {solverSteps.length} | Current: {currentSolverStep}</span>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* DEFAULT PUZZLE MENU FOR PLAYER */}
+          {/* FIRST ROW */}
           <div className='flex flex-col items-center min-w-[420px] mt-8'>
-            {puzzleSolved && <p className='text-green-400 mb-2'>Puzzle solved!</p>}
             <div className='flex flex-row items-center justify-between gap-4 mb-2 w-full'>
-              <p className='text-white'>Turns: {turns}</p>
+              <p className='text-white'>Turns: {solverOpen ? solverTurns : turns}</p>
+              {/* GO BACK ONE STEP BUTTON */}
               <button 
-                onClick={handleUndo} 
-                className='bg-gray-200 hover:bg-gray-300 text-black p-2'
+                onClick={handleUndo}
+                disabled={solverOpen}
+                className='bg-gray-200 hover:bg-gray-300 disabled:bg-gray-400 disabled:opacity-50 text-black p-2'
               >
                 {history.length === 0 ? 'Exit Puzzle' : 'Undo Move'}
               </button>
+              {/* SHUFFLE PUZZLE BUTTON */}
               <button 
-                onClick={handleShuffle} 
-                className='bg-gray-200 hover:bg-gray-300 text-black p-2'
+                onClick={handleShuffle}
+                disabled={solverOpen}
+                className='bg-gray-200 hover:bg-gray-300 disabled:bg-gray-400 disabled:opacity-50 text-black p-2'
               >
                 Shuffle
               </button>
+              {/* BUTTON TO OPTIONALLY SHOW THE TILE INDEXES TO PLAYER */}
               <button 
                 onClick={() => setShowNumbers(!showNumbers)} 
                 className='bg-gray-200 hover:bg-gray-300 text-black p-2'
@@ -284,12 +629,23 @@ const Game = () => {
                 {showNumbers ? 'Hide' : 'Show'} Numbers
               </button>
             </div>
-            <div className='flex flex-row items-center justify-center w-full'>
+
+            {/* SECOND ROW */}
+            <div className='flex flex-row items-center justify-center gap-4 w-full'>
+              {/* RESET PUZZLE BOARD BUTTON, RESETS BACK TO INITIAL STEP */}
               <button 
-                onClick={handleReset} 
-                className='bg-gray-200 hover:bg-gray-300 text-black p-2'
+                onClick={handleReset}
+                disabled={solverOpen}
+                className='bg-gray-200 hover:bg-gray-300 disabled:bg-gray-400 disabled:opacity-50 text-black p-2'
               >
                 Reset to Start
+              </button>
+              {/* OPEN SOLVER MENU, SHOWS STEP BY STEP SOLUTION WITH DIFFERENT ALGORITHMS */}
+              <button 
+                onClick={handleSolve}
+                className='bg-blue-500 hover:bg-blue-400 text-white p-2'
+              >
+                {solverOpen ? 'Close Solver' : 'Solve'}
               </button>
             </div>
           </div>
