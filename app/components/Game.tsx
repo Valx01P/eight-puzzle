@@ -474,6 +474,25 @@ const Game = () => {
 
   return (
     <section className='bg-gray-950 flex justify-center items-center flex-col min-h-dvh py-8 sm:py-16 md:py-32 px-4'>
+      {/* TITLE - SHOWN ON ALL SCREENS */}
+      <h1 className="text-white text-center mb-8 text-[clamp(1.2rem,4vw,2rem)] leading-tight flex flex-wrap justify-center gap-1" 
+          style={{ fontFamily: "'Press Start 2P', monospace" }}>
+        {['8', '-', 'B', 'I', 'T', ' ', 'P', 'U', 'Z', 'Z', 'L', 'E', ' ', 'G', 'A', 'M', 'E'].map((letter, index) => (
+          <span
+            key={index}
+            className={`inline-block transition-all duration-300 hover:text-cyan-400 hover:scale-125 hover:-translate-y-2 hover:drop-shadow-[0_0_20px_rgba(34,211,238,0.8)] ${
+              letter === ' ' ? 'w-2' : 'animate-bounce'
+            }`}
+            style={{ 
+              animationDelay: `${index * 100}ms`,
+              textShadow: '0 0 10px rgba(255,255,255,0.5), 0 0 20px rgba(34,211,238,0.3), 0 0 30px rgba(34,211,238,0.2)'
+            }}
+          >
+            {letter === ' ' ? '\u00A0' : letter}
+          </span>
+        ))}
+      </h1>
+      
       {/* BEFORE PUZZLE HAS STARTED */}
       {!puzzleStarted ? (
         <div className='flex flex-col items-center w-full'>
