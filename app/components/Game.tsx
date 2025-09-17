@@ -2,6 +2,7 @@
 'use client'
 import {useRef, useState, useEffect} from 'react'
 import NextImage from 'next/image'
+import ShovelKnightImage from '../images/ShovelKnight.webp'
 
 // constants
 const GRID_SIZE = 3
@@ -474,24 +475,43 @@ const Game = () => {
 
   return (
     <section className='bg-gray-950 flex justify-center items-center flex-col min-h-dvh py-8 sm:py-16 md:py-32 px-4'>
-      {/* TITLE - SHOWN ON ALL SCREENS */}
-      <h1 className="text-white text-center mb-8 text-[clamp(1.2rem,4vw,2rem)] leading-tight flex flex-wrap justify-center gap-1" 
-          style={{ fontFamily: "'Press Start 2P', monospace" }}>
-        {['8', '-', 'B', 'I', 'T', ' ', 'P', 'U', 'Z', 'Z', 'L', 'E', ' ', 'G', 'A', 'M', 'E'].map((letter, index) => (
-          <span
-            key={index}
-            className={`inline-block transition-all duration-300 hover:text-cyan-400 hover:scale-125 hover:-translate-y-2 hover:drop-shadow-[0_0_20px_rgba(34,211,238,0.8)] ${
-              letter === ' ' ? 'w-2' : 'animate-bounce'
-            }`}
-            style={{ 
-              animationDelay: `${index * 100}ms`,
-              textShadow: '0 0 10px rgba(255,255,255,0.5), 0 0 20px rgba(34,211,238,0.3), 0 0 30px rgba(34,211,238,0.2)'
-            }}
-          >
-            {letter === ' ' ? '\u00A0' : letter}
+      {/* TITLE SECTION WITH SHOVEL KNIGHT */}
+      <div className="flex flex-col items-center mb-8">
+        {/* SHOVEL KNIGHT IMAGE */}
+        <NextImage 
+          src={ShovelKnightImage}
+          alt="Shovel Knight"
+          width={80}
+          height={80}
+          className="mb-4 animate-bounce pixelated"
+          style={{ 
+            animationDuration: '2s',
+            imageRendering: 'pixelated',
+            filter: 'drop-shadow(0 0 10px rgba(34,211,238,0.5))'
+          }}
+        />
+        
+        {/* TITLE TEXT */}
+        <h1 className="text-white text-center text-[clamp(2rem,7vw,4rem)] leading-tight flex flex-wrap justify-center gap-6" 
+            style={{ fontFamily: "'Press Start 2P', monospace" }}>
+        {['8-BIT', 'PUZZLE', 'GAME'].map((word, wordIndex) => (
+          <span key={wordIndex} className="flex whitespace-nowrap">
+            {word.split('').map((letter, letterIndex) => (
+              <span
+                key={`${wordIndex}-${letterIndex}`}
+                className="inline-block transition-all duration-300 hover:text-cyan-400 hover:scale-125 hover:-translate-y-2 hover:drop-shadow-[0_0_20px_rgba(34,211,238,0.8)] animate-bounce"
+                style={{ 
+                  animationDelay: `${(wordIndex * word.length + letterIndex) * 100}ms`,
+                  textShadow: '0 0 10px rgba(255,255,255,0.5), 0 0 20px rgba(34,211,238,0.3), 0 0 30px rgba(34,211,238,0.2)'
+                }}
+              >
+                {letter}
+              </span>
+            ))}
           </span>
         ))}
-      </h1>
+        </h1>
+      </div>
       
       {/* BEFORE PUZZLE HAS STARTED */}
       {!puzzleStarted ? (
