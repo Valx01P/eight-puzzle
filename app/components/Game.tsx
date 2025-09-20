@@ -2,7 +2,6 @@
 'use client'
 import {useRef, useState, useEffect} from 'react'
 import NextImage from 'next/image'
-import ShovelKnightImage from '../images/ShovelKnight.webp'
 
 // constants
 const GRID_SIZE = 3
@@ -475,22 +474,8 @@ const Game = () => {
 
   return (
     <section className='bg-gray-950 flex justify-center items-center flex-col min-h-dvh py-8 sm:py-16 md:py-32 px-4'>
-      {/* TITLE SECTION WITH SHOVEL KNIGHT */}
+      {/* TITLE SECTION */}
       <div className="flex flex-col items-center mb-8">
-        {/* SHOVEL KNIGHT IMAGE */}
-        <NextImage 
-          src={ShovelKnightImage}
-          alt="Shovel Knight"
-          width={80}
-          height={80}
-          className="mb-4 animate-bounce pixelated"
-          style={{ 
-            animationDuration: '2s',
-            imageRendering: 'pixelated',
-            filter: 'drop-shadow(0 0 10px rgba(34,211,238,0.5))'
-          }}
-        />
-        
         {/* TITLE TEXT */}
         <h1 className="text-white text-center text-[clamp(2rem,7vw,4rem)] leading-tight flex flex-wrap justify-center gap-6" 
             style={{ fontFamily: "'Press Start 2P', monospace" }}>
