@@ -474,42 +474,112 @@ const Game = () => {
 
   return (
     <section className='bg-gray-950 flex justify-center items-center flex-col min-h-dvh py-8 sm:py-16 md:py-32 px-4'>
-      {/* TITLE SECTION */}
-      <div className="flex flex-col items-center mb-8">
-        {/* TITLE TEXT */}
-        <h1 className="text-white text-center text-[clamp(2rem,7vw,4rem)] leading-tight flex flex-wrap justify-center gap-6" 
-            style={{ fontFamily: "'Press Start 2P', monospace" }}>
-        {['8-BIT', 'PUZZLE', 'GAME'].map((word, wordIndex) => (
-          <span key={wordIndex} className="flex whitespace-nowrap">
-            {word.split('').map((letter, letterIndex) => (
-              <span
-                key={`${wordIndex}-${letterIndex}`}
-                className="inline-block transition-all duration-300 hover:text-cyan-400 hover:scale-125 hover:-translate-y-2 hover:drop-shadow-[0_0_20px_rgba(34,211,238,0.8)] animate-bounce"
-                style={{ 
-                  animationDelay: `${(wordIndex * word.length + letterIndex) * 100}ms`,
-                  textShadow: '0 0 10px rgba(255,255,255,0.5), 0 0 20px rgba(34,211,238,0.3), 0 0 30px rgba(34,211,238,0.2)'
-                }}
-              >
-                {letter}
-              </span>
-            ))}
-          </span>
-        ))}
-        </h1>
+      {/* ENHANCED TITLE SECTION */}
+      <div className="flex flex-col items-center mb-12">
+        {/* TITLE CONTAINER WITH BACKGROUND */}
+        <div className="relative mb-6">
+          {/* BACKGROUND GLOW EFFECT */}
+          <div className="absolute inset-0 bg-gradient-to-r from-cyan-400/20 via-blue-500/20 to-purple-500/20 blur-xl rounded-3xl transform scale-110"></div>
+          
+          {/* MAIN TITLE CONTAINER */}
+          <div className="relative rounded-2xl px-8 py-6 flex items-center justify-center">
+            {/* TITLE TEXT */}
+            <h1 className="text-center text-[clamp(2rem,7vw,4rem)] leading-tight" 
+                style={{ fontFamily: "'Press Start 2P', monospace" }}>
+              <div className="flex flex-wrap justify-center items-center gap-6">
+                {['8-BIT', 'PUZZLE', 'GAME'].map((word, wordIndex) => (
+                  <span key={wordIndex} className="flex whitespace-nowrap">
+                    {word.split('').map((letter, letterIndex) => (
+                      <span
+                        key={`${wordIndex}-${letterIndex}`}
+                        className="inline-block transition-all duration-300 hover:scale-125 hover:-translate-y-2 animate-bounce bg-gradient-to-b from-white via-cyan-200 to-cyan-400 bg-clip-text text-transparent"
+                        style={{ 
+                          animationDelay: `${(wordIndex * word.length + letterIndex) * 100}ms`,
+                          filter: 'drop-shadow(0 0 10px rgba(34,211,238,0.5)) drop-shadow(0 0 20px rgba(34,211,238,0.3))'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.filter = 'drop-shadow(0 0 15px rgba(34,211,238,0.8)) drop-shadow(0 0 30px rgba(34,211,238,0.6))'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.filter = 'drop-shadow(0 0 10px rgba(34,211,238,0.5)) drop-shadow(0 0 20px rgba(34,211,238,0.3))'
+                        }}
+                      >
+                        {letter}
+                      </span>
+                    ))}
+                  </span>
+                ))}
+              </div>
+            </h1>
+          </div>
+        </div>
+        
+        {/* SUBTITLE */}
+        <p className="text-cyan-300/80 text-center text-[clamp(0.8rem,2vw,1.2rem)] font-mono tracking-wider">
+          Classic sliding puzzle reimagined
+        </p>
       </div>
       
       {/* BEFORE PUZZLE HAS STARTED */}
       {!puzzleStarted ? (
         <div className='flex flex-col items-center w-full'>
-          {/* FUN WAITING SCREEN */}
+          {/* ENHANCED WAITING SCREEN */}
           <div 
-            className='bg-gray-900 border border-gray-800 flex items-center justify-center mb-8'
+            className='bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-2 border-cyan-400/30 rounded-2xl flex items-center justify-center mb-8 relative overflow-hidden shadow-2xl'
             style={{ width: `${contentWidth}px`, height: `${contentWidth}px` }}
           >
-            <div
-              className='animate-bounce' 
-              style={{ backgroundColor: 'tomato', width: `${contentWidth / 8}px`, height: `${contentWidth / 8}px` }}
-            />
+            {/* BACKGROUND PATTERN */}
+            <div className="absolute inset-0 opacity-10">
+              <div className="grid grid-cols-3 gap-1 w-full h-full p-4">
+                {[...Array(9)].map((_, i) => (
+                  <div 
+                    key={i} 
+                    className="bg-cyan-400 rounded-sm"
+                    style={{
+                      animationDelay: `${i * 150}ms`,
+                      animation: 'pulse 2s infinite'
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+            
+            {/* MAIN ANIMATION */}
+            <div className="relative z-10 flex flex-col items-center">
+              {/* ANIMATED PUZZLE PIECES */}
+              <div className="grid grid-cols-3 gap-2 mb-6">
+                {[...Array(8)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-sm shadow-lg transform transition-all duration-1000"
+                    style={{
+                      animationDelay: `${i * 200}ms`,
+                      animation: 'bounce 2s infinite, pulse 3s infinite alternate'
+                    }}
+                  />
+                ))}
+                {/* Empty space for the missing piece */}
+                <div className="w-8 h-8 border-2 border-dashed border-cyan-400/50 rounded-sm flex items-center justify-center">
+                  <div className="w-2 h-2 bg-cyan-400/50 rounded-full animate-ping"></div>
+                </div>
+              </div>
+              
+              {/* LOADING TEXT */}
+              <div className="text-center">
+                <h3 className="text-cyan-300 text-xl font-mono mb-2 animate-pulse">
+                  Ready to Puzzle?
+                </h3>
+                <p className="text-cyan-400/70 text-sm font-mono">
+                  Upload an image to get started
+                </p>
+              </div>
+            </div>
+            
+            {/* CORNER ACCENTS */}
+            <div className="absolute top-2 left-2 w-4 h-4 border-l-2 border-t-2 border-cyan-400/50"></div>
+            <div className="absolute top-2 right-2 w-4 h-4 border-r-2 border-t-2 border-cyan-400/50"></div>
+            <div className="absolute bottom-2 left-2 w-4 h-4 border-l-2 border-b-2 border-cyan-400/50"></div>
+            <div className="absolute bottom-2 right-2 w-4 h-4 border-r-2 border-b-2 border-cyan-400/50"></div>
           </div>
           {/* IMAGE UPLOAD AND PREVIEW */}
           <div 
