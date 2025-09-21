@@ -597,7 +597,7 @@ const Game = () => {
             <button
               type='button'
               onClick={handleFileInputClick}
-              className={`bg-gray-200 hover:bg-gray-300 text-black p-2 rounded ${dynamicButtonText}`}
+              className={`btn-8bit ${imageFile ? '' : ''} bg-gray-200 hover:bg-gray-300 text-black p-2 rounded ${dynamicButtonText}`}
             >
               {!imageFile ? 'Upload Image' : 'Change Image'}
             </button>
@@ -614,7 +614,7 @@ const Game = () => {
                   className='border border-gray-900 bg-white mb-4 mt-2 w-full h-auto max-w-[260px]'
                 />
                 <button
-                  className={`bg-gray-200 w-fit hover:bg-gray-300 text-black p-2 rounded ${dynamicButtonText}`}
+                  className={`btn-8bit bg-gray-200 w-fit hover:bg-gray-300 text-black p-2 rounded ${dynamicButtonText}`}
                   onClick={startPuzzle}
                 >
                   Create 8-Puzzle
@@ -703,14 +703,14 @@ const Game = () => {
                 <button
                   onClick={handlePrevStep}
                   disabled={currentSolverStep === 0}
-                  className={`bg-gray-600 hover:bg-gray-500 disabled:bg-gray-700 disabled:opacity-50 text-white p-2 rounded ${dynamicButtonText}`}
+                  className={`btn-8bit bg-gray-600 hover:bg-gray-500 disabled:bg-gray-700 disabled:opacity-50 text-white p-2 rounded ${dynamicButtonText}`}
                 >
                   ← Prev
                 </button>
                 <button
                   onClick={handleNextStep}
                   disabled={currentSolverStep >= solverSteps.length}
-                  className={`bg-gray-600 hover:bg-gray-500 disabled:bg-gray-700 disabled:opacity-50 text-white p-2 rounded ${dynamicButtonText}`}
+                  className={`btn-8bit bg-gray-600 hover:bg-gray-500 disabled:bg-gray-700 disabled:opacity-50 text-white p-2 rounded ${dynamicButtonText}`}
                 >
                   Next →
                 </button>
@@ -745,7 +745,7 @@ const Game = () => {
               <button 
                 onClick={handleUndo}
                 disabled={solverOpen}
-                className={`bg-gray-200 hover:bg-gray-300 disabled:bg-gray-400 disabled:opacity-50 text-black p-2 rounded ${dynamicButtonText}`}
+                className={`btn-8bit bg-gray-200 hover:bg-gray-300 disabled:bg-gray-400 disabled:opacity-50 text-black p-2 rounded ${dynamicButtonText}`}
               >
                 {history.length === 0 ? 'Exit Puzzle' : 'Undo Move'}
               </button>
@@ -753,14 +753,15 @@ const Game = () => {
               <button 
                 onClick={handleShuffle}
                 disabled={solverOpen}
-                className={`bg-gray-200 hover:bg-gray-300 disabled:bg-gray-400 disabled:opacity-50 text-black p-2 rounded ${dynamicButtonText}`}
+                className={`btn-8bit bg-gray-200 hover:bg-gray-300 disabled:bg-gray-400 disabled:opacity-50 text-black p-2 rounded ${dynamicButtonText}`}
               >
                 Shuffle
               </button>
               {/* BUTTON TO OPTIONALLY SHOW THE TILE INDEXES TO PLAYER */}
               <button 
                 onClick={() => setShowNumbers(!showNumbers)} 
-                className={`bg-gray-200 hover:bg-gray-300 disabled:bg-gray-400 disabled:opacity-50 text-black p-2 rounded ${dynamicButtonText}`}
+                aria-pressed={showNumbers}
+                className={`btn-8bit ${showNumbers ? 'selected' : ''} bg-gray-200 hover:bg-gray-300 disabled:bg-gray-400 disabled:opacity-50 text-black p-2 rounded ${dynamicButtonText}`}
               >
                 {showNumbers ? 'Hide' : 'Show'} Numbers
               </button>
@@ -772,14 +773,15 @@ const Game = () => {
               <button 
                 onClick={handleReset}
                 disabled={solverOpen}
-                className={`bg-gray-200 hover:bg-gray-300 disabled:bg-gray-400 disabled:opacity-50 text-black p-2 rounded ${dynamicButtonText}`}
+                className={`btn-8bit bg-gray-200 hover:bg-gray-300 disabled:bg-gray-400 disabled:opacity-50 text-black p-2 rounded ${dynamicButtonText}`}
               >
                 Reset to Start
               </button>
               {/* OPEN SOLVER MENU, SHOWS STEP BY STEP SOLUTION WITH DIFFERENT ALGORITHMS */}
               <button 
                 onClick={handleSolve}
-                className={`bg-blue-500 hover:bg-blue-400 text-white p-2 rounded ${dynamicButtonText}`}
+                aria-pressed={solverOpen}
+                className={`btn-8bit btn-8bit--primary ${solverOpen ? 'selected' : ''} bg-blue-500 hover:bg-blue-400 text-white p-2 rounded ${dynamicButtonText}`}
               >
                 {solverOpen ? 'Close Solver' : 'Solve'}
               </button>
