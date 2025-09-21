@@ -760,7 +760,8 @@ const Game = () => {
               {/* BUTTON TO OPTIONALLY SHOW THE TILE INDEXES TO PLAYER */}
               <button 
                 onClick={() => setShowNumbers(!showNumbers)} 
-                className={`btn-8bit bg-gray-200 hover:bg-gray-300 disabled:bg-gray-400 disabled:opacity-50 text-black p-2 rounded ${dynamicButtonText}`}
+                aria-pressed={showNumbers}
+                className={`btn-8bit ${showNumbers ? 'selected' : ''} bg-gray-200 hover:bg-gray-300 disabled:bg-gray-400 disabled:opacity-50 text-black p-2 rounded ${dynamicButtonText}`}
               >
                 {showNumbers ? 'Hide' : 'Show'} Numbers
               </button>
@@ -779,16 +780,5 @@ const Game = () => {
               {/* OPEN SOLVER MENU, SHOWS STEP BY STEP SOLUTION WITH DIFFERENT ALGORITHMS */}
               <button 
                 onClick={handleSolve}
-                className={`btn-8bit btn-8bit--primary bg-blue-500 hover:bg-blue-400 text-white p-2 rounded ${dynamicButtonText}`}
-              >
-                {solverOpen ? 'Close Solver' : 'Solve'}
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-    </section>
-  )
-}
-
-export default Game
+                aria-pressed={solverOpen}
+                className={`btn-8bit btn-8bit--primary ${solverOpen ? 'selected' : ''
