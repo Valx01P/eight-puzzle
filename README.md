@@ -3,7 +3,10 @@
 ## Instructions
 
 1. Make sure you have Node.JS installed on your local machine and it's updated to the more current version
-2. Run this in your terminal: npm run dev
+
+2.This will download npm dependencies: npm install
+
+3.Run this in your terminal: npm run dev
 
 
 
