@@ -781,4 +781,16 @@ const Game = () => {
               <button 
                 onClick={handleSolve}
                 aria-pressed={solverOpen}
-                className={`btn-8bit btn-8bit--primary ${solverOpen ? 'selected' : ''
+                className={`btn-8bit btn-8bit--primary ${solverOpen ? 'selected' : ''} bg-blue-500 hover:bg-blue-400 text-white p-2 rounded ${dynamicButtonText}`}
+              >
+                {solverOpen ? 'Close Solver' : 'Solve'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </section>
+  )
+}
+
+export default Game
